@@ -1,17 +1,13 @@
 #!/bin/sh
-USER_SHELL=$(getent passwd "$USER" | cut -d: -f7)
 
-if [ -z "$XDG_RUNTIME_DIR" ]; then
-    export XDG_RUNTIME_DIR="/tmp/user-$(id -u)"
-    mkdir -p "$XDG_RUNTIME_DIR"
-    chmod 0700 "$XDG_RUNTIME_DIR"
-fi
+USER_SHELL=$(getent passwd "$USER" | cut -d: -f7)
 
 sudo setup-wayland-base
 sudo apk add util-linux-login
+
 sudo apk add pipewire wireplumber pipewire-pulse pipewire-alsa pipewire-jack pavucontrol dbus dbus-x11
 
-sudo rc-update add dbus
+sudo rc-update add dbus default
 sudo rc-service dbus start
 
 sudo adduser "$USER" pipewire
@@ -47,25 +43,6 @@ case "$USER_SHELL" in
         ;;
 esac
 
-for profile in $TARGET_PROFILES; do
-    if [ ! -f "$profile" ]; then
-        touch "$profile"
-    fi
-
-    if ! grep -q "XDG_RUNTIME_DIR" "$profile" 2>/dev/null; then
-        cat << 'EOF' >> "$profile"
-
-if [ -z "$XDG_RUNTIME_DIR" ]; then
-    export XDG_RUNTIME_DIR="/tmp/user-$(id -u)"
-    if [ ! -d "$XDG_RUNTIME_DIR" ]; then
-        mkdir -p "$XDG_RUNTIME_DIR"
-        chmod 0700 "$XDG_RUNTIME_DIR"
-    fi
-fi
-EOF
-    fi
-done
-
 printf "Enter your choice (1 for Global XDG Autostart, 2 for Shell Profile): "
 read choice
 
@@ -76,7 +53,7 @@ case $choice in
 [Desktop Entry]
 Name=PipeWire
 Comment=Start PipeWire and its integrated services
-Exec=sh -c "pkill -x pipewire; sleep 1; pipewire"
+Exec=sh -c "pkill -u $USER -x pipewire; sleep 1; pipewire"
 Terminal=false
 Type=Application
 NoDisplay=true
@@ -84,10 +61,14 @@ EOF
         ;;
     2)
         for profile in $TARGET_PROFILES; do
-            if ! grep -q "pgrep -x \"pipewire\"" "$profile" 2>/dev/null; then
+            if [ ! -f "$profile" ]; then
+                touch "$profile"
+            fi
+
+            if ! grep -q "pgrep -u \"\$USER\" -x \"pipewire\"" "$profile" 2>/dev/null; then
                 cat << 'EOF' >> "$profile"
 
-if ! pgrep -x "pipewire" > /dev/null; then
+if ! pgrep -u "$USER" -x "pipewire" > /dev/null; then
     pipewire >/dev/null 2>&1 &
 fi
 EOF
@@ -95,5 +76,6 @@ EOF
         done
         ;;
     *)
+        echo "Skipping autostart configuration."
         ;;
 esac
