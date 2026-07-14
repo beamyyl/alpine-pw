@@ -17,21 +17,18 @@ read choice
 
 case $choice in
     1)
-        printf "Choose session type (1 for Wayland/gui, 2 for Xorg/default): "
-        read session
-        if [ "$session" = "1" ]; then
-            RUNLEVEL="gui"
-            mkdir -p "$HOME/.config/rc/runlevels/gui"
-            mkdir -p "$HOME/.config/rc"
+        mkdir -p "$HOME/.config/rc/runlevels/gui"
+        mkdir -p "$HOME/.config/rc/runlevels/default"
+        mkdir -p "$HOME/.config/rc"
+        if ! grep -q 'rc_env_allow="WAYLAND_DISPLAY"' "$HOME/.config/rc/rc.conf" 2>/dev/null; then
             echo 'rc_env_allow="WAYLAND_DISPLAY"' >> "$HOME/.config/rc/rc.conf"
-        else
-            RUNLEVEL="default"
-            mkdir -p "$HOME/.config/rc/runlevels/default"
         fi
-        
-        rc-update -U add pipewire "$RUNLEVEL"
-        rc-update -U add wireplumber "$RUNLEVEL"
-        rc-update -U add pipewire-pulse "$RUNLEVEL"
+        rc-update -U add pipewire gui
+        rc-update -U add wireplumber gui
+        rc-update -U add pipewire-pulse gui
+        rc-update -U add pipewire default
+        rc-update -U add wireplumber default
+        rc-update -U add pipewire-pulse default
         ;;
     2)
         CMD='if [ -z "$XDG_RUNTIME_DIR" ]; then export XDG_RUNTIME_DIR="/tmp/$(id -u)-runtime-dir"; mkdir -pm 0700 "$XDG_RUNTIME_DIR"; fi; export $(dbus-launch); if ! pgrep -x "pipewire" > /dev/null; then /usr/libexec/pipewire-launcher >/dev/null 2>&1 & fi'
