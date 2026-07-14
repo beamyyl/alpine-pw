@@ -1,5 +1,7 @@
 #!/bin/sh
 
+USER_SHELL=$(getent passwd "$USER" | cut -d: -f7)
+
 if [ -z "$XDG_RUNTIME_DIR" ]; then
     export XDG_RUNTIME_DIR="/tmp/user-$(id -u)"
     mkdir -p "$XDG_RUNTIME_DIR"
@@ -34,10 +36,23 @@ context.exec = [
 ]
 EOF
 
-for profile in "$HOME/.profile" "$HOME/.bash_profile" "$HOME/.zprofile"; do
-    if [ -f "$profile" ] || [ "$profile" = "$HOME/.profile" ]; then
-        if ! grep -q "XDG_RUNTIME_DIR" "$profile" 2>/dev/null; then
-            cat << 'EOF' >> "$profile"
+TARGET_PROFILES="$HOME/.profile"
+case "$USER_SHELL" in
+    *bash*)
+        TARGET_PROFILES="$TARGET_PROFILES $HOME/.bash_profile"
+        ;;
+    *zsh*)
+        TARGET_PROFILES="$TARGET_PROFILES $HOME/.zprofile"
+        ;;
+esac
+
+for profile in $TARGET_PROFILES; do
+    if [ ! -f "$profile" ]; then
+        touch "$profile"
+    fi
+
+    if ! grep -q "XDG_RUNTIME_DIR" "$profile" 2>/dev/null; then
+        cat << 'EOF' >> "$profile"
 
 if [ -z "$XDG_RUNTIME_DIR" ]; then
     export XDG_RUNTIME_DIR="/tmp/user-$(id -u)"
@@ -47,7 +62,6 @@ if [ -z "$XDG_RUNTIME_DIR" ]; then
     fi
 fi
 EOF
-        fi
     fi
 done
 
@@ -68,16 +82,14 @@ NoDisplay=true
 EOF
         ;;
     2)
-        for profile in "$HOME/.profile" "$HOME/.bash_profile" "$HOME/.zprofile"; do
-            if [ -f "$profile" ] || [ "$profile" = "$HOME/.profile" ]; then
-                if ! grep -q "pgrep -x \"pipewire\"" "$profile" 2>/dev/null; then
-                    cat << 'EOF' >> "$profile"
+        for profile in $TARGET_PROFILES; do
+            if ! grep -q "pgrep -x \"pipewire\"" "$profile" 2>/dev/null; then
+                cat << 'EOF' >> "$profile"
 
 if ! pgrep -x "pipewire" > /dev/null; then
     pipewire >/dev/null 2>&1 &
 fi
 EOF
-                fi
             fi
         done
         ;;
