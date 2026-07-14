@@ -1,5 +1,4 @@
 #!/bin/sh
-
 USER_SHELL=$(getent passwd "$USER" | cut -d: -f7)
 
 if [ -z "$XDG_RUNTIME_DIR" ]; then
@@ -8,6 +7,8 @@ if [ -z "$XDG_RUNTIME_DIR" ]; then
     chmod 0700 "$XDG_RUNTIME_DIR"
 fi
 
+sudo setup-wayland-base
+sudo apk add util-linux-login
 sudo apk add pipewire wireplumber pipewire-pulse pipewire-alsa pipewire-jack pavucontrol dbus dbus-x11
 
 sudo rc-update add dbus
