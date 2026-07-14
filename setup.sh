@@ -5,8 +5,6 @@ sudo apk add pipewire wireplumber pipewire-pulse pipewire-alsa pipewire-jack pav
 sudo rc-update add dbus
 sudo rc-service dbus start
 
-sudo adduser "$USER" pipewire
-
 sudo cp -a /usr/share/pipewire /etc
 sudo cp -a /usr/share/wireplumber /etc
 
