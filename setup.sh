@@ -31,7 +31,7 @@ sudo tee /etc/xdg/autostart/pipewire.desktop > /dev/null << 'EOF'
 [Desktop Entry]
 Name=PipeWire
 Comment=Start PipeWire and its integrated services
-Exec=sh -c "pkill -x pipewire; sleep 1; pipewire"
+Exec=sh -c "pkill -x pipewire; pipewire"
 Terminal=false
 Type=Application
 NoDisplay=true
