@@ -1,6 +1,6 @@
 #!/bin/sh
 
-sudo apk add pipewire wireplumber pipewire-pulse pipewire-alsa pipewire-jack pavucontrol dbus dbus-x11
+sudo apk add pipewire wireplumber pipewire-pulse pipewire-alsa pipewire-jack pavucontrol dbus dbus-x11 pam-rundir
 
 sudo rc-update add dbus
 sudo rc-service dbus start
@@ -38,21 +38,18 @@ case $choice in
         if [ ! -f "$HOME/.xinitrc" ] || ! grep -q "openrc -U default" "$HOME/.xinitrc"; then
             mv "$HOME/.xinitrc" "$HOME/.xinitrc.bak" 2>/dev/null
             cat << 'EOF' > "$HOME/.xinitrc"
-if [ -z "$XDG_RUNTIME_DIR" ]; then
-    export XDG_RUNTIME_DIR="/tmp/$(id -u)-runtime-dir"
-    mkdir -pm 0700 "$XDG_RUNTIME_DIR"
-fi
-
 openrc -U default
-
 exec dbus-launch --exit-with-session dwm
 EOF
             chmod +x "$HOME/.xinitrc"
         fi
 
         if [ -z "$XDG_RUNTIME_DIR" ]; then
-            export XDG_RUNTIME_DIR="/tmp/$(id -u)-runtime-dir"
-            mkdir -pm 0700 "$XDG_RUNTIME_DIR"
+            export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+            if [ ! -d "$XDG_RUNTIME_DIR" ]; then
+                sudo mkdir -pm 0700 "$XDG_RUNTIME_DIR"
+                sudo chown "$USER":"$USER" "$XDG_RUNTIME_DIR"
+            fi
         fi
 
         rc-service -U pipewire start
@@ -60,7 +57,7 @@ EOF
         rc-service -U pipewire-pulse start
         ;;
     2)
-        CMD='if [ -z "$XDG_RUNTIME_DIR" ]; then export XDG_RUNTIME_DIR="/tmp/$(id -u)-runtime-dir"; mkdir -pm 0700 "$XDG_RUNTIME_DIR"; fi; export $(dbus-launch); if ! pgrep -x "pipewire" > /dev/null; then /usr/libexec/pipewire-launcher >/dev/null 2>&1 & fi'
+        CMD='export $(dbus-launch); if ! pgrep -x "pipewire" > /dev/null; then /usr/libexec/pipewire-launcher >/dev/null 2>&1 & fi'
         echo "$CMD" >> "$HOME/.profile"
         echo "$CMD" >> "$HOME/.bash_profile"
         echo "$CMD" >> "$HOME/.zprofile"
