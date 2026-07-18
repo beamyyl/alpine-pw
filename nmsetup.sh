@@ -1,5 +1,5 @@
 #!/bin/sh
-sudo apk add networkmanager networkmanager-wifi networkmanager-tui network-manager-applet dbus
+sudo apk add networkmanager networkmanager-wifi networkmanager-tui network-manager-applet networkmanager-dev networkmanager-bluetooth dbus
 sudo adduser "$USER" plugdev
 sudo mkdir -p /etc/NetworkManager/conf.d
 sudo tee /etc/NetworkManager/NetworkManager.conf > /dev/null << 'EOF'
@@ -23,6 +23,7 @@ EOF
 sudo rc-service networking stop 2>/dev/null
 sudo rc-service wpa_supplicant stop 2>/dev/null
 sudo rc-update del networking boot 2>/dev/null
-sudo rc-update del wpa_supplicant boot 2>/dev/null
+sudo rc-update add wpa_supplicant boot 2>/dev/null
 sudo rc-update add networkmanager default
+sudo rc-service wpa_supplicant start
 sudo rc-service networkmanager restart
